@@ -2,13 +2,16 @@ package cache
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Cache stores arbitrary data with expiration time.
 type Cache struct {
-	items sync.Map
-	close chan struct{}
+	items  sync.Map
+	close  chan struct{}
+	misses atomic.Int64
+	hits   atomic.Int64
 }
 
 // An item represents arbitrary data with expiration time.
@@ -52,14 +55,25 @@ func New(cleaningInterval time.Duration) *Cache {
 	return cache
 }
 
+// Misses returns the number of times a key was not found in the cache.
+func (cache *Cache) Misses() int64 {
+	return cache.misses.Load()
+}
+
+// Hits returns the number of cache hits.
+func (cache *Cache) Hits() int64 {
+	return cache.hits.Load()
+}
+
 // Get gets the value for the given key.
 func (cache *Cache) Get(key interface{}) (interface{}, bool) {
 	obj, exists := cache.items.Load(key)
 
 	if !exists {
+		cache.misses.Add(1)
 		return nil, false
 	}
-
+	cache.hits.Add(1)
 	item := obj.(item)
 
 	if item.expires > 0 && time.Now().UnixNano() > item.expires {
