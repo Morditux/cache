@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/akyoto/cache"
+	"github.com/Morditux/cache"
 )
 
 func TestGetSet(t *testing.T) {
